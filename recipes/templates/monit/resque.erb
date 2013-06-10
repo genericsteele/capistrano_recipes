@@ -1,0 +1,3 @@
+check process resque with pidfile <%= resque_pid %>
+  start program = "/bin/su - deployer -c '/etc/init.d/resque start'"
+  stop program = "/etc/init.d/resque stop"

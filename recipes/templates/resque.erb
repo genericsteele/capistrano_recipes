@@ -1,0 +1,56 @@
+#!/bin/sh -e
+### BEGIN INIT INFO
+# Provides:		resque
+# Required-Start:	$local_fs $remote_fs
+# Required-Stop:	$local_fs $remote_fs
+# Should-Start:		$local_fs
+# Should-Stop:		$local_fs
+# Default-Start:	2 3 4 5
+# Default-Stop:		0 1 6
+# Short-Description:	resque - a Redis-backed Ruby library for creating background jobs
+# Description:		resque - a Redis-backed Ruby library for creating background jobs, placing those jobs on multiple queues, and processing them later.
+### END INIT INFO
+
+set -e
+PID=<%= resque_pid %>
+
+export RAILS_ENV=production
+export PIDFILE=<%= resque_pid %>
+export BACKGROUND=yes
+export QUEUE=messages,mailer
+
+CMD="cd <%= current_path %>; bundle exec rake resque:work"
+
+set -u
+
+sig () {
+  test -s "$PID" && kill -$1 `cat $PID`
+}
+
+run () {
+  eval $1
+}
+
+case "$1" in 
+start)
+  sig 0 && echo >$2 "Already running" && exit 0
+  run "$CMD"
+  ;;
+stop)
+  sig QUIT && exit 0
+  echo >&2 "Not running"
+  ;;
+force-stop)
+  sig TERM && exit 0
+  echo >&2 "Not running"
+  ;;
+restart|reload)
+  sig HUP && echo reloaded OK && exit 0
+  echo >&2 "Couldn't reload, starting resque workers instead"
+  run "$CMD"
+  ;;
+*)
+  echo >&2 "Usage $0 {start|stop|restart|force-stop}"
+  exit 1
+  ;;
+esac
