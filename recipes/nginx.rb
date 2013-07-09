@@ -1,5 +1,5 @@
 set_default(:nginx_pid, "/run/nginx.pid")
-set_default(:production_server_name, "")
+set_default(:production_server_name, "Add your production server name here")
 
 namespace :nginx do
   desc "Install the latest stable release of nginx"
