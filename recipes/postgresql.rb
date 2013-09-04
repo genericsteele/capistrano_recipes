@@ -18,20 +18,27 @@ namespace :postgresql do
     run %Q{#{sudo} -u postgres psql -c "create user #{postgresql_user} with password '#{postgresql_password}';"}
     run %Q{#{sudo} -u postgres psql -c "create database #{postgresql_database} owner #{postgresql_user};"}
     run %Q{echo "localhost:*:#{postgresql_database}:#{postgresql_user}:#{postgresql_password}" > /home/#{user}/.pgpass}
-    run %Q{#{sudo} chmod 0600 /home/#{user}/.pgpass}
+    run %Q{chmod 0600 /home/#{user}/.pgpass}
   end
   after "deploy:setup", "postgresql:create_database"
   
   desc "Generate the database.yml config file"
   task :setup, roles: :app do
     run "mkdir -p #{shared_path}/config"
+    run "mkdir -p #{shared_path}/db/backups"
     template "postgresql.yml.erb", "#{shared_path}/config/database.yml"
   end
   after "deploy:setup", "postgresql:setup"
+
+  desc "Backup the database to S3"
+  task :backup, roles: :app do
+    run_remote "cd #{current_path} && RAILS_ENV=production bundle exec rake pg:backup"
+  end
   
   desc "Symlink the database.yml file into the latest release"
   task :symlink, roles: :app do
     run "ln -nfs #{shared_path}/config/database.yml #{release_path}/config/database.yml"
+    run "ln -nfs #{shared_path}/db/backups #{release_path}/db/backups"
   end
   after "deploy:finalize_update", "postgresql:symlink"
 end
